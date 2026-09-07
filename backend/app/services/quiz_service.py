@@ -5,13 +5,14 @@ from app.services.quiz_generator import QuestionGenerator
 
 
 class QuizService:
-    """Application service responsible for creating quizzes."""
+    """Application service responsible for quiz operations."""
 
     def __init__(
         self,
         question_generator: QuestionGenerator,
     ) -> None:
         self.question_generator = question_generator
+        self._quizzes: dict[str, Quiz] = {}
 
     def generate_quiz(
         self,
@@ -28,9 +29,24 @@ class QuizService:
             question_count=question_count,
         )
 
-        return Quiz(
+        quiz = Quiz(
             id=str(uuid4()),
             title=title.strip(),
             questions=questions,
             source_document_id=source_document_id,
         )
+
+        self._quizzes[quiz.id] = quiz
+
+        return quiz
+
+    def get_quiz(self, quiz_id: str) -> Quiz:
+        quiz = self._quizzes.get(quiz_id)
+
+        if quiz is None:
+            raise KeyError(f"Quiz '{quiz_id}' was not found.")
+
+        return quiz
+
+    def list_quizzes(self) -> list[Quiz]:
+        return list(self._quizzes.values())
