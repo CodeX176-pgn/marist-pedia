@@ -1,5 +1,15 @@
-from backend.app.schemas.document import DocumentUploadResponse
+from .quiz import (
+    AnswerChoiceSchema,
+    QuestionSchema,
+    QuizGenerationRequest,
+    QuizGenerationResponse,
+    QuizSchema,
+)
 
 __all__ = [
-    "DocumentUploadResponse",
+    "AnswerChoiceSchema",
+    "QuestionSchema",
+    "QuizGenerationRequest",
+    "QuizGenerationResponse",
+    "QuizSchema",
 ]

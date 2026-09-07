@@ -1,4 +1,4 @@
-from backend.app.routers import documents, health, quizzes
+from . import documents, health, quizzes
 
 __all__ = [
     "documents",

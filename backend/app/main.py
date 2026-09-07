@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.config.settings import settings
-from backend.app.routers import documents, health, quizzes
+from app.config.settings import settings
+from app.routers import documents, health, quizzes
 
 app = FastAPI(
     title=settings.app_name,

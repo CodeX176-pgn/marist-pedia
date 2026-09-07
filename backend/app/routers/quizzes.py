@@ -1,32 +1,70 @@
-from fastapi import APIRouter, status
 
-from backend.app.schemas.quiz import QuizCreate, QuizResponse
-from backend.app.services.quiz_service import create_quiz
+from fastapi import APIRouter, HTTPException
+
+from app.schemas.quiz import (
+    AnswerChoiceSchema,
+    QuestionSchema,
+    QuizGenerationRequest,
+    QuizGenerationResponse,
+    QuizSchema,
+)
+from app.services.quiz_service import QuizService
 
 router = APIRouter(
-    prefix="/quizzes",
-    tags=["Quizzes"],
+    prefix="/api/quizzes",
+    tags=["quizzes"],
 )
 
-@router.get("")
-async def get_quizzes() -> list[dict]:
-    return []
+quiz_service = QuizService()
+
 
 @router.post(
-    "",
-    response_model=QuizResponse,
-    status_code=status.HTTP_201_CREATED,
+    "/generate",
+    response_model=QuizGenerationResponse,
 )
-async def create_quiz_endpoint(payload: QuizCreate) -> QuizResponse:
-    quiz = create_quiz(
-        title=payload.title,
-        document_id=payload.document_id,
-        question_count=payload.question_count,
-    )
+def generate_quiz(
+    request: QuizGenerationRequest,
+) -> QuizGenerationResponse:
+    """Generate a quiz from processed text chunks."""
 
-    return QuizResponse(
+    try:
+        quiz = quiz_service.generate_quiz(
+            title=request.title,
+            chunks=request.chunks,
+            question_count=request.question_count,
+            source_document_id=request.source_document_id,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    quiz_schema = QuizSchema(
         id=quiz.id,
         title=quiz.title,
-        document_id=quiz.document_id,
-        questions=[],
+        source_document_id=quiz.source_document_id,
+        description=quiz.description,
+        questions=[
+            QuestionSchema(
+                id=question.id,
+                text=question.text,
+                correct_answer=question.correct_answer,
+                explanation=question.explanation,
+                difficulty=question.difficulty,
+                choices=[
+                    AnswerChoiceSchema(
+                        id=choice.id,
+                        text=choice.text,
+                    )
+                    for choice in question.choices
+                ],
+            )
+            for question in quiz.questions
+        ],
+    )
+
+    return QuizGenerationResponse(
+        quiz=quiz_schema,
     )
