@@ -8,6 +8,9 @@ router = APIRouter(
     tags=["Quizzes"],
 )
 
+@router.get("")
+async def get_quizzes() -> list[dict]:
+    return []
 
 @router.post(
     "",

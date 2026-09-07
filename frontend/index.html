@@ -1,35 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="description"
+        content="Marist Pedia - Turn your study documents into interactive quizzes."
+    >
 
     <title>Marist Pedia</title>
 
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/components.css">
 
-<body>
-    <main class="container">
-        <section class="hero">
-            <p class="eyebrow">MARIST PEDIA</p>
+    </head>
 
-            <h1>Document-powered quizzes.</h1>
+    <body>
 
-            <p class="subtitle">
-                Turn learning material into interactive quizzes.
-            </p>
+    <header class="site-header">
+        <div class="container header-content">
+            <a href="/" class="logo">
+                Marist Pedia
+            </a>
 
-            <button id="health-button">
-                Test Backend Connection
-            </button>
+            <nav class="main-nav" aria-label="Main navigation">
+                <a href="#home">Home</a>
+                <a href="#quizzes">Quizzes</a>
+            </nav>
+        </div>
+    </header>
 
-            <p id="status" class="status">
-                Backend connection has not been tested yet.
-            </p>
+    <main id="app">
+
+        <!-- Home -->
+        <section id="home" class="page-section">
+            <div class="container hero">
+                <div class="hero-content">
+                    <p class="eyebrow">Study smarter</p>
+
+                    <h1>
+                        Turn your study material into
+                        <span class="highlight">quizzes.</span>
+                    </h1>
+
+                    <p class="hero-description">
+                        Upload your learning material and use Marist Pedia
+                        to create interactive quizzes from it.
+                    </p>
+
+                    <div class="hero-actions">
+                        <button
+                            id="get-started-btn"
+                            class="button button-primary"
+                            type="button"
+                        >
+                            Get Started
+                        </button>
+                    </div>
+                </div>
+            </div>
         </section>
+
+        <!-- Quizzes -->
+        <section id="quizzes" class="page-section">
+            <div class="container">
+                <div class="section-heading">
+                    <p class="eyebrow">Your learning</p>
+                    <h2>Quizzes</h2>
+                    <p>
+                        Your generated quizzes will appear here.
+                    </p>
+                </div>
+
+                <div id="quiz-list" class="quiz-grid">
+                    <div class="empty-state">
+                        <h3>No quizzes yet</h3>
+                        <p>
+                            Upload a document to create your first quiz.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
-    <script src="/static/js/app.js"></script>
-</body>
+    <footer class="site-footer">
+        <div class="container">
+            <p>
+                &copy; 2026 Marist Pedia
+            </p>
+        </div>
+    </footer>
+
+    <script type="module" src="js/app.js"></script>
+
+    </body>
 </html>

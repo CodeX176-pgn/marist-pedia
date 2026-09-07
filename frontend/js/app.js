@@ -1,27 +1,79 @@
-const healthButton = document.querySelector("#health-button");
-const statusElement = document.querySelector("#status");
+import { getHealth, getQuizzes } from "./api.js";
 
+import {
+    setLoading,
+    showError,
+    renderQuizCard,
+} from "./ui.js";
 
-async function checkBackendHealth() {
-    statusElement.textContent = "Checking backend...";
+const quizList = document.querySelector("#quiz-list");
+const getStartedButton =
+    document.querySelector("#get-started-btn");
 
+async function initializeApp() {
     try {
-        const response = await fetch("/api/health");
+        await getHealth();
+        console.log("Connected to Marist Pedia backend.");
 
-        if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        statusElement.textContent = data.message;
+        await loadQuizzes();
     } catch (error) {
-        console.error(error);
+        console.error(
+            "Failed to initialize application:",
+            error
+        );
 
-        statusElement.textContent =
-            "Could not connect to the backend.";
+        showError(
+            quizList,
+            "Unable to connect to the Marist Pedia server."
+        );
     }
 }
 
+async function loadQuizzes() {
+    setLoading(quizList, "Loading quizzes...");
 
-healthButton.addEventListener("click", checkBackendHealth);
+    try {
+        const quizzes = await getQuizzes();
+
+        renderQuizzes(quizzes);
+    } catch (error) {
+        console.error("Failed to load quizzes:", error);
+
+        showError(
+            quizList,
+            error.message
+        );
+    }
+}
+
+function renderQuizzes(quizzes) {
+    quizList.innerHTML = "";
+
+    if (!Array.isArray(quizzes) || quizzes.length === 0) {
+        quizList.innerHTML = `
+            <div class="empty-state">
+                <h3>No quizzes yet</h3>
+                <p>
+                    Upload a document to create your first quiz.
+                </p>
+            </div>
+        `;
+
+        return;
+    }
+
+    for (const quiz of quizzes) {
+        const card = renderQuizCard(quiz);
+        quizList.appendChild(card);
+    }
+}
+
+getStartedButton.addEventListener("click", () => {
+    document
+        .querySelector("#quizzes")
+        .scrollIntoView({
+            behavior: "smooth",
+        });
+});
+
+initializeApp();
