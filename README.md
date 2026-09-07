@@ -15,14 +15,19 @@ MaristPedia
 │       │   └── quiz.py
 │       ├── routers
 │       │   ├── __init__.py
+│       │   ├── documents.py
 │       │   ├── health.py
 │       │   └── quizzes.py
 │       ├── schemas
 │       │   ├── __init__.py
+│       │   ├── document.py
 │       │   └── quiz.py
 │       ├── services
 │       │   ├── __init__.py
-│       │   └── quiz_service.py
+│       │   ├── document_extraction_service.py
+│       │   ├── document_service.py
+│       │   ├── quiz_service.py
+│       │   └── text_processing_service.py
 │       ├── __init__.py
 │       └── main.py
 ├── frontend
@@ -40,7 +45,12 @@ MaristPedia
 ├── src
 │   └── marist_pedia
 │       └── __init__.py
+├── storage
+│   └── uploads
+│       └── .gitkeep
 ├── tests
+│   ├── test_document_extraction.py
+│   └── test_text_processsing.py
 ├── pyproject.toml
 ├── README.md
 └── uv.lock
