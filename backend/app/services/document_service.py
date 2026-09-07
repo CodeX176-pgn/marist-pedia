@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from fastapi import UploadFile
 
-from backend.app.config.settings import settings
+from app.config.settings import settings
 
 
 class DocumentUploadError(Exception):

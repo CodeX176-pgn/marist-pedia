@@ -3,22 +3,22 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
-from backend.app.config.settings import settings
-from backend.app.schemas.document import (
+from app.config.settings import settings
+from app.schemas.document import (
     DocumentChunk,
     DocumentProcessingResponse,
     DocumentTextResponse,
     DocumentUploadResponse,
 )
-from backend.app.services.document_extraction_service import (
+from app.services.document_extraction_service import (
     DocumentExtractionError,
     extract_document_text,
 )
-from backend.app.services.document_service import (
+from app.services.document_service import (
     DocumentUploadError,
     save_document,
 )
-from backend.app.services.text_processing_service import (
+from app.services.text_processing_service import (
     clean_extracted_text,
     split_into_chunks,
 )

@@ -26,6 +26,7 @@ MaristPedia
 │       │   ├── __init__.py
 │       │   ├── document_extraction_service.py
 │       │   ├── document_service.py
+│       │   ├── quiz_generator.py
 │       │   ├── quiz_service.py
 │       │   └── text_processing_service.py
 │       ├── __init__.py
@@ -50,6 +51,7 @@ MaristPedia
 │       └── .gitkeep
 ├── tests
 │   ├── test_document_extraction.py
+│   ├── test_quiz_service.py
 │   └── test_text_processsing.py
 ├── pyproject.toml
 ├── README.md
