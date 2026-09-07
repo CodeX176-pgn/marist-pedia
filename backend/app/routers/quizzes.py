@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 
-from app.schemas.quiz import QuizCreate, QuizResponse
-from app.services.quiz_service import create_quiz
+from backend.app.schemas.quiz import QuizCreate, QuizResponse
+from backend.app.services.quiz_service import create_quiz
 
 router = APIRouter(
     prefix="/quizzes",

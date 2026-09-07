@@ -1,7 +1,7 @@
 # Project Structure
 
 ```
-marist-pedia
+MaristPedia
 ├── backend
 │   └── app
 │       ├── config

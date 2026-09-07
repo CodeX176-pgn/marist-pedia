@@ -2,36 +2,28 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyd
 
 # Virtual environments
 .venv/
+venv/
+env/
 
 # Environment variables
 .env
 .env.*
 
-# IDEs
-.vscode/
-.idea/
-*.code-workspace
-
-# Operating system
-.DS_Store
-Thumbs.db
-
-# Testing / coverage
+# Test / tooling
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 
-# Temporary files
-*.tmp
-*.temp
+# IDEs
+.vscode/
+.idea/
 
-# Application data
-uploads/
-data/
-
-# Backup files
-*backup.*
-*.zip
+# Application storage
+storage/uploads/*
+!storage/uploads/.gitkeep

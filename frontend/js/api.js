@@ -32,9 +32,9 @@ async function request(endpoint, options = {}) {
 }
 
 export async function getHealth() {
-    return request("/api/health");
+    return request("/health");
 }
 
 export async function getQuizzes() {
-    return request("/api/quizzes");
+    return request("/quizzes");
 }

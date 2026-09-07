@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from app.models.quiz import Quiz
+from backend.app.models.quiz import Quiz
 
 
 def create_quiz(

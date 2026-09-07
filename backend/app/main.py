@@ -1,45 +1,36 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config.settings import get_settings
-from app.core.errors import register_error_handlers
-from app.routers import health, quizzes
-
-settings = get_settings()
+from backend.app.config.settings import settings
+from backend.app.routers import documents, health, quizzes
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    debug=settings.debug,
 )
 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-app.include_router(
-    health.router,
-    prefix=settings.api_prefix,
-)
-
-app.include_router(
-    quizzes.router,
-    prefix=settings.api_prefix,
-)
-
-
-register_error_handlers(app)
+app.include_router(health.router)
+app.include_router(quizzes.router)
+app.include_router(documents.router)
 
 
 @app.get("/")
 async def root() -> dict[str, str]:
     return {
-        "message": "Welcome to Marist Pedia API",
+        "name": settings.app_name,
         "version": settings.app_version,
+        "message": "Welcome to Marist Pedia!",
     }
