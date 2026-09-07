@@ -20,6 +20,8 @@ class Settings(BaseSettings):
         ".markdown",
     )
 
+    question_generator: str = "local"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

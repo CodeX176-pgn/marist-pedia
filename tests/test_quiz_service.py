@@ -1,20 +1,19 @@
-
-import pytest
 from app.models.quiz import Difficulty
+from app.services.local_question_generator import LocalQuestionGenerator
 from app.services.quiz_service import QuizService
 
 
 def test_generate_quiz():
-    service = QuizService()
+    service = QuizService(
+        question_generator=LocalQuestionGenerator(),
+    )
 
     chunks = [
         (
             "Python is a high-level programming language designed "
             "for general-purpose programming."
         ),
-        (
-            "FastAPI is a modern Python web framework for building APIs."
-        ),
+        "FastAPI is a modern Python web framework for building APIs.",
     ]
 
     quiz = service.generate_quiz(
@@ -35,32 +34,44 @@ def test_generate_quiz():
         assert question.difficulty == Difficulty.MEDIUM
 
 
-
-
 def test_generate_quiz_requires_chunks():
-    service = QuizService()
+    service = QuizService(
+        question_generator=LocalQuestionGenerator(),
+    )
 
-    with pytest.raises(ValueError):
+    try:
         service.generate_quiz(
             title="Empty Quiz",
             chunks=[],
             question_count=5,
         )
+    except ValueError as exc:
+        assert str(exc) == "At least one text chunk is required."
+    else:
+        raise AssertionError("Expected ValueError")
 
 
 def test_generate_quiz_requires_positive_question_count():
-    service = QuizService()
+    service = QuizService(
+        question_generator=LocalQuestionGenerator(),
+    )
 
-    with pytest.raises(ValueError):
+    try:
         service.generate_quiz(
             title="Invalid Quiz",
             chunks=["This is valid source content for a quiz."],
             question_count=0,
         )
+    except ValueError as exc:
+        assert str(exc) == "Question count must be at least 1."
+    else:
+        raise AssertionError("Expected ValueError")
 
 
 def test_question_count_cannot_exceed_available_sentences():
-    service = QuizService()
+    service = QuizService(
+        question_generator=LocalQuestionGenerator(),
+    )
 
     chunks = [
         "Python is a programming language.",
