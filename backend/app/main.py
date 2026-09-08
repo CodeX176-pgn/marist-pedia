@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.config.settings import settings
 from app.routers import documents, health, quizzes
@@ -10,12 +11,20 @@ app = FastAPI(
 )
 
 
+# Reject requests using untrusted Host headers.
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.allowed_hosts_list,
+)
+
+
+# Restrict browser-based cross-origin requests.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Accept", "Content-Type"],
 )
 
 

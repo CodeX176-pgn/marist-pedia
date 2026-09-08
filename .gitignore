@@ -21,6 +21,7 @@ env/
 htmlcov/
 
 # IDEs
+*.code-workspace
 .vscode/
 .idea/
 

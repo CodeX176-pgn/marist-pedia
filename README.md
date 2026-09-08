@@ -24,10 +24,14 @@ MaristPedia
 │       │   └── quiz.py
 │       ├── services
 │       │   ├── __init__.py
+│       │   ├── ai_question_generator.py
 │       │   ├── document_extraction_service.py
 │       │   ├── document_service.py
+│       │   ├── local_question_generator.py
+│       │   ├── question_generator_factory.py
 │       │   ├── quiz_generator.py
 │       │   ├── quiz_service.py
+│       │   ├── quiz_session_service.py
 │       │   └── text_processing_service.py
 │       ├── __init__.py
 │       └── main.py
@@ -50,8 +54,13 @@ MaristPedia
 │   └── uploads
 │       └── .gitkeep
 ├── tests
+│   ├── test_document_api_security.py
 │   ├── test_document_extraction.py
+│   ├── test_document_security.py
+│   ├── test_question_generator_architecture.py
+│   ├── test_quiz_api.py
 │   ├── test_quiz_service.py
+│   ├── test_quiz_session.py
 │   └── test_text_processsing.py
 ├── pyproject.toml
 ├── README.md

@@ -9,19 +9,27 @@ class Settings(BaseSettings):
     app_name: str = "Marist Pedia"
     app_version: str = "0.1.0"
 
-    # Server configuration
+    # Server
     host: str = "0.0.0.0"
     port: int = 8000
 
-    # Security / CORS
+    # Browser security
     cors_origins: str = (
         "http://localhost:5500,"
         "http://127.0.0.1:5500,"
         "http://192.168.18.6:5500"
     )
 
-    # Upload configuration
+    allowed_hosts: str = (
+        "localhost,"
+        "127.0.0.1,"
+        "testserver,"
+        "192.168.18.6"
+    )
+
+    # Upload security
     max_upload_size: int = 10 * 1024 * 1024
+    max_filename_length: int = 255
 
     upload_directory: Path = PROJECT_ROOT / "storage" / "uploads"
 
@@ -43,11 +51,20 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        """Return configured CORS origins as a clean list."""
+        """Return configured CORS origins."""
         return [
             origin.strip()
             for origin in self.cors_origins.split(",")
             if origin.strip()
+        ]
+
+    @property
+    def allowed_hosts_list(self) -> list[str]:
+        """Return configured trusted hosts."""
+        return [
+            host.strip()
+            for host in self.allowed_hosts.split(",")
+            if host.strip()
         ]
 
 
