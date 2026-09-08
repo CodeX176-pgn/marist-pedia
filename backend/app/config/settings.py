@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Find the root folder of the Marist Pedia project.
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -31,8 +32,22 @@ class Settings(BaseSettings):
     max_upload_size: int = 10 * 1024 * 1024
     max_filename_length: int = 255
 
-    upload_directory: Path = PROJECT_ROOT / "storage" / "uploads"
+    # Folder where uploaded documents are stored.
+    upload_directory: Path = (
+        PROJECT_ROOT / "storage" / "uploads"
+    )
 
+    # SQLite database file.
+    database_file: Path = (
+        PROJECT_ROOT / "storage" / "marist_pedia.db"
+    )
+
+    # SQLAlchemy connection URL.
+    database_url: str = (
+        f"sqlite:///{PROJECT_ROOT / 'storage' / 'marist_pedia.db'}"
+    )
+
+    # Allowed document types.
     allowed_document_extensions: tuple[str, ...] = (
         ".pdf",
         ".txt",

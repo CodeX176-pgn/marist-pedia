@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.config.settings import settings
+from app.core.database import SessionLocal
 from app.schemas.quiz import (
     AnswerChoiceSchema,
     AnswerSubmission,
@@ -37,12 +38,14 @@ def _create_quiz_service() -> QuizService:
 
     return QuizService(
         question_generator=question_generator,
+        session_factory=SessionLocal,
     )
 
 
 quiz_service = _create_quiz_service()
-session_service = QuizSessionService()
-
+session_service = QuizSessionService(
+    session_factory=SessionLocal,
+)
 
 def _question_to_schema(question) -> QuestionSchema:
     return QuestionSchema(

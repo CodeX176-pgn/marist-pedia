@@ -1,14 +1,27 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.trustedhost import (
+    TrustedHostMiddleware,
+)
 
 from app.config.settings import settings
+from app.core.database import init_database
 from app.core.errors import register_error_handlers
 from app.core.logging_config import configure_logging
-from app.core.request_logging import register_request_logging
-from app.routers import documents, health, quizzes
+from app.core.request_logging import (
+    register_request_logging,
+)
+from app.routers import (
+    documents,
+    health,
+    quizzes,
+)
 
 configure_logging()
+
+# Make sure the database exists before the API starts.
+init_database()
+
 
 app = FastAPI(
     title=settings.app_name,

@@ -16,6 +16,7 @@ from app.services.document_extraction_service import (
 )
 from app.services.document_service import (
     DocumentUploadError,
+    get_document,
     save_document,
 )
 from app.services.text_processing_service import (
@@ -66,18 +67,31 @@ async def extract_document(
 ) -> DocumentTextResponse:
     """Extract text from an uploaded document."""
 
-    matching_files = list(
-        settings.upload_directory.glob(f"{document_id}.*")
-    )
+    # Look up the document metadata in SQLite.
+    try:
+        document = get_document(document_id)
 
-    if not matching_files:
+    except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found.",
+        ) from exc
+
+    # Build the path to the actual uploaded file.
+    file_path = (
+        settings.upload_directory
+        / document.stored_filename
+    )
+
+    # Make sure the database record points to a real file.
+    if not file_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document file is missing from storage.",
         )
 
-    file_path = matching_files[0]
-    extension = file_path.suffix.lower()
+    # Use the extension stored in the database.
+    extension = document.extension
 
     try:
         text = extract_document_text(
@@ -93,7 +107,7 @@ async def extract_document(
 
     return DocumentTextResponse(
         id=document_id,
-        filename=file_path.name,
+        filename=document.original_filename,
         extension=extension,
         character_count=len(text),
         text=text,
@@ -109,28 +123,48 @@ async def process_document(
 ) -> DocumentProcessingResponse:
     """Extract, clean, and chunk an uploaded document."""
 
-    matching_files = list(
-        settings.upload_directory.glob(f"{document_id}.*")
-    )
+    # Look up the document metadata in SQLite.
+    try:
+        document = get_document(document_id)
 
-    if not matching_files:
+    except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found.",
+        ) from exc
+
+    # Build the path to the actual uploaded file.
+    file_path = (
+        settings.upload_directory
+        / document.stored_filename
+    )
+
+    # Make sure the database record points to a real file.
+    if not file_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document file is missing from storage.",
         )
 
-    file_path = matching_files[0]
-    extension = file_path.suffix.lower()
+    # Use the extension stored in the database.
+    extension = document.extension
 
     try:
+        # Extract the original text from the document.
         raw_text = extract_document_text(
             file_path=file_path,
             extension=extension,
         )
 
-        cleaned_text = clean_extracted_text(raw_text)
+        # Remove unnecessary whitespace and noise.
+        cleaned_text = clean_extracted_text(
+            raw_text
+        )
 
-        chunks = split_into_chunks(cleaned_text)
+        # Split the cleaned text into manageable chunks.
+        chunks = split_into_chunks(
+            cleaned_text
+        )
 
     except DocumentExtractionError as exc:
         raise HTTPException(
@@ -140,7 +174,7 @@ async def process_document(
 
     return DocumentProcessingResponse(
         id=document_id,
-        filename=file_path.name,
+        filename=document.original_filename,
         character_count=len(cleaned_text),
         chunk_count=len(chunks),
         chunks=[

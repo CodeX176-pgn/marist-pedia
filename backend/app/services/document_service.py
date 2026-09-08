@@ -1,10 +1,13 @@
 from datetime import UTC, datetime
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import UploadFile
+from sqlalchemy import select
 
 from app.config.settings import settings
+from app.core.database import SessionLocal
+from app.models.database import DocumentRecord
 
 
 class DocumentUploadError(Exception):
@@ -25,7 +28,7 @@ def get_extension(filename: str) -> str:
 
 
 def validate_filename(filename: str) -> str:
-    """Validate a user-supplied filename and return its safe basename."""
+    """Validate a user-supplied filename."""
 
     if not filename:
         raise DocumentUploadError(
@@ -49,7 +52,10 @@ def validate_filename(filename: str) -> str:
             "The uploaded file has an invalid filename."
         )
 
-    if any(ord(character) < 32 for character in safe_filename):
+    if any(
+        ord(character) < 32
+        for character in safe_filename
+    ):
         raise DocumentUploadError(
             "The filename contains invalid control characters."
         )
@@ -62,8 +68,12 @@ def validate_extension(filename: str) -> str:
 
     extension = get_extension(filename)
 
-    if extension not in settings.allowed_document_extensions:
-        allowed = ", ".join(settings.allowed_document_extensions)
+    if extension not in (
+        settings.allowed_document_extensions
+    ):
+        allowed = ", ".join(
+            settings.allowed_document_extensions
+        )
 
         raise DocumentUploadError(
             f"Unsupported file type. Allowed types: {allowed}"
@@ -76,7 +86,7 @@ def validate_file_content(
     file_path: Path,
     extension: str,
 ) -> None:
-    """Validate that the stored file matches its declared type."""
+    """Validate that the stored file matches its type."""
 
     try:
         with file_path.open("rb") as input_file:
@@ -95,10 +105,11 @@ def validate_file_content(
 
         return
 
-    # TXT and Markdown files should contain valid UTF-8 text.
     try:
         with file_path.open("rb") as input_file:
-            while chunk := input_file.read(1024 * 1024):
+            while chunk := input_file.read(
+                1024 * 1024
+            ):
                 chunk.decode("utf-8")
 
     except UnicodeDecodeError as exc:
@@ -112,31 +123,49 @@ def validate_file_content(
         ) from exc
 
 
-async def save_document(file: UploadFile) -> dict:
-    """Validate and safely save an uploaded document."""
+async def save_document(
+    file: UploadFile,
+) -> dict:
+    """Save a document and register its metadata."""
 
     if not file.filename:
         raise DocumentUploadError(
             "The uploaded file has no filename."
         )
 
-    safe_filename = validate_filename(file.filename)
-    extension = validate_extension(safe_filename)
+    safe_filename = validate_filename(
+        file.filename
+    )
+
+    extension = validate_extension(
+        safe_filename
+    )
 
     document_id = uuid4()
-    stored_filename = f"{document_id}{extension}"
+
+    stored_filename = (
+        f"{document_id}{extension}"
+    )
 
     settings.upload_directory.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    destination = settings.upload_directory / stored_filename
+    destination = (
+        settings.upload_directory
+        / stored_filename
+    )
+
     total_size = 0
+    uploaded_at = datetime.now(UTC)
 
     try:
+        # Save the actual document to disk.
         with destination.open("wb") as output_file:
-            while chunk := await file.read(1024 * 1024):
+            while chunk := await file.read(
+                1024 * 1024
+            ):
                 total_size += len(chunk)
 
                 if total_size > settings.max_upload_size:
@@ -157,10 +186,35 @@ async def save_document(file: UploadFile) -> dict:
             extension,
         )
 
-    except Exception:
-        if destination.exists():
-            destination.unlink()
+        # Save the document metadata to SQLite.
+        db = SessionLocal()
 
+        try:
+            db.add(
+                DocumentRecord(
+                    id=str(document_id),
+                    original_filename=safe_filename,
+                    stored_filename=stored_filename,
+                    extension=extension,
+                    size=total_size,
+                    uploaded_at=uploaded_at,
+                )
+            )
+
+            db.commit()
+
+        except Exception:
+            db.rollback()
+            raise
+
+        finally:
+            db.close()
+
+    except Exception:
+        # If the database operation fails, don't leave an orphaned file.
+        destination.unlink(
+            missing_ok=True
+        )
         raise
 
     return {
@@ -169,5 +223,32 @@ async def save_document(file: UploadFile) -> dict:
         "stored_filename": stored_filename,
         "extension": extension,
         "size": total_size,
-        "uploaded_at": datetime.now(UTC),
+        "uploaded_at": uploaded_at,
     }
+
+
+def get_document(
+    document_id: UUID,
+) -> DocumentRecord:
+    """Find document metadata in the database."""
+
+    db = SessionLocal()
+
+    try:
+        record = db.scalar(
+            select(DocumentRecord).where(
+                DocumentRecord.id
+                == str(document_id)
+            )
+        )
+
+        if record is None:
+            raise KeyError(
+                f"Document '{document_id}' was not found."
+            )
+
+        return record
+
+    finally:
+        db.close()
+    

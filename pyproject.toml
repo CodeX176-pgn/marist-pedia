@@ -8,6 +8,7 @@ dependencies = [
     "pydantic-settings",
     "python-multipart>=0.0.20",
     "pypdf>=6.17.0",
+    "sqlalchemy>=2.0.52",
 ]
 
 [dependency-groups]

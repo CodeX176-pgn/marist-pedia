@@ -29,6 +29,10 @@ htmlcov/
 storage/uploads/*
 !storage/uploads/.gitkeep
 
+# SQLite database
+storage/*.db
+storage/*.db-*
+
 # Backup files
 *.zip
 *backup.*
