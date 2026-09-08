@@ -1,5 +1,21 @@
+const DEFAULT_API_PORT = 8000;
+
+function getDefaultApiUrl() {
+    const protocol = window.location.protocol;
+
+    // When the frontend is opened directly from the filesystem,
+    // fall back to localhost for local development.
+    if (protocol === "file:") {
+        return `http://localhost:${DEFAULT_API_PORT}`;
+    }
+
+    // When served over HTTP, use the same machine/IP that served
+    // the frontend, but with the FastAPI port.
+    return `${protocol}//${window.location.hostname}:${DEFAULT_API_PORT}`;
+}
+
 const API_BASE_URL = (
-    window.MARIST_PEDIA_API_URL || "http://localhost:8000"
+    window.MARIST_PEDIA_API_URL || getDefaultApiUrl()
 ).replace(/\/$/, "");
 
 async function request(endpoint, options = {}) {
@@ -34,8 +50,11 @@ async function request(endpoint, options = {}) {
 
     if (!response.ok) {
         const detail = data?.detail;
+
         const message = Array.isArray(detail)
-            ? detail.map((item) => item.msg || "Invalid request").join("; ")
+            ? detail
+                .map((item) => item.msg || "Invalid request")
+                .join("; ")
             : detail || `Request failed with status ${response.status}`;
 
         throw new Error(message);
