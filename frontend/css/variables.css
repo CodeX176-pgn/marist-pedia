@@ -1,31 +1,33 @@
 :root {
-    --color-background: #f8fafc;
+    --color-bg: #f5f7fa;
+    --color-bg-soft: #eef1f5;
     --color-surface: #ffffff;
-    --color-text: #0f172a;
-    --color-text-muted: #64748b;
-    --color-primary: #2563eb;
-    --color-primary-hover: #1d4ed8;
-    --color-border: #e2e8f0;
-
-    --color-success: #16a34a;
-    --color-error: #dc2626;
-
-    --radius-small: 6px;
-    --radius-medium: 10px;
-    --radius-large: 16px;
-
-    --shadow-small:
-        0 1px 3px rgba(15, 23, 42, 0.08);
-
-    --shadow-medium:
-        0 8px 24px rgba(15, 23, 42, 0.08);
-
-    --container-width: 1100px;
-
-    --spacing-xs: 0.5rem;
+    --color-surface-solid: #ffffff;
+    --color-surface-hover: #f8fafc;
+    --color-text: #1f2937;
+    --color-text-muted: #5f6b7a;
+    --color-text-soft: #7b8794;
+    --color-primary: #315f9b;
+    --color-primary-strong: #254b7d;
+    --color-accent: #4b6f9f;
+    --color-success: #2f7d5a;
+    --color-error: #b54747;
+    --color-warning: #a56a1f;
+    --color-border: #dfe4ea;
+    --color-border-strong: #b8c4d2;
+    --shadow-card: 0 8px 24px rgba(31, 41, 55, 0.08);
+    --shadow-button: 0 3px 8px rgba(49, 95, 155, 0.16);
+    --radius-small: 8px;
+    --radius-medium: 12px;
+    --radius-large: 18px;
+    --radius-pill: 999px;
+    --container-width: 1120px;
+    --header-height: 72px;
+    --spacing-xs: 0.4rem;
     --spacing-sm: 0.75rem;
     --spacing-md: 1rem;
     --spacing-lg: 1.5rem;
     --spacing-xl: 2rem;
-    --spacing-2xl: 4rem;
+    --spacing-2xl: 3rem;
+    --spacing-3xl: 5rem;
 }
