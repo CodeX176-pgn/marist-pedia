@@ -1,86 +1,102 @@
-# Project Structure
+# Marist Pedia
 
-```
-MaristPedia
-├── backend
-│   └── app
-│       ├── config
-│       │   ├── __init__.py
-│       │   └── settings.py
-│       ├── core
-│       │   ├── __init__.py
-│       │   └── errors.py
-│       ├── models
-│       │   ├── __init__.py
-│       │   └── quiz.py
-│       ├── routers
-│       │   ├── __init__.py
-│       │   ├── documents.py
-│       │   ├── health.py
-│       │   └── quizzes.py
-│       ├── schemas
-│       │   ├── __init__.py
-│       │   ├── document.py
-│       │   └── quiz.py
-│       ├── services
-│       │   ├── __init__.py
-│       │   ├── ai_question_generator.py
-│       │   ├── document_extraction_service.py
-│       │   ├── document_service.py
-│       │   ├── local_question_generator.py
-│       │   ├── question_generator_factory.py
-│       │   ├── quiz_generator.py
-│       │   ├── quiz_service.py
-│       │   ├── quiz_session_service.py
-│       │   └── text_processing_service.py
-│       ├── __init__.py
-│       └── main.py
-├── frontend
-│   ├── css
-│   │   ├── components.css
-│   │   ├── global.css
-│   │   ├── reset.css
-│   │   ├── style.css
-│   │   └── variables.css
-│   ├── js
-│   │   ├── api.js
-│   │   ├── app.js
-│   │   └── ui.js
-│   └── index.html
-├── src
-│   └── marist_pedia
-│       └── __init__.py
-├── storage
-│   └── uploads
-│       └── .gitkeep
-├── tests
-│   ├── test_document_api_security.py
-│   ├── test_document_extraction.py
-│   ├── conftest.py
-│   ├── test_document_api_integration.py
-│   ├── test_document_security.py
-│   ├── test_question_generator_architecture.py
-│   ├── test_error_handling.py
-│   ├── test_quiz_api.py
-│   ├── test_quiz_api_integration.py
-│   ├── test_quiz_service.py
-│   ├── test_quiz_session.py
-│   └── test_text_processsing.py
-├── pyproject.toml
-├── README.md
-└── uv.lock
+Marist Pedia is a FastAPI + Vanilla JavaScript quiz application that turns study material into interactive quizzes.
+
+## Current roadmap status
+
+- **A — Foundation:** complete
+- **B — Document Pipeline:** complete
+- **C — Quiz Engine:** complete
+- **D — Quiz Backend:** complete
+- **E — Quiz Frontend:** complete
+- **F — LAN + Security:** complete
+- **G — Quality:** complete
+- **H — Database:** complete
+- **I — Teacher/Admin:** complete
+
+## Phase I — Teacher/Admin features
+
+The teacher dashboard is available at `frontend/admin.html`.
+
+It provides:
+
+- Uploaded-document management and deletion.
+- A complete list of generated quizzes, including drafts.
+- Quiz review with the correct answers visible to teachers.
+- Quiz title and description editing.
+- Question text, choices, correct answer, explanation, and difficulty editing.
+- Publish/unpublish controls.
+- A protected admin API using the `X-Admin-Key` header.
+
+Generated quizzes start as **drafts**. The student quiz library only lists published quizzes. Existing databases are upgraded automatically when the application starts; older quizzes are kept published during the upgrade so the change does not unexpectedly hide existing content.
+
+## Setup
+
+### 1. Install dependencies
+
+```powershell
+uv sync
 ```
 
+### 2. Configure the teacher key
 
-## Quality
+Copy `.env.example` to `.env` and choose a private admin key.
 
-Phase G adds automated integration coverage and centralized API error handling.
-The API also assigns an `X-Request-ID` to each request and writes structured JSON logs to the server console.
+```powershell
+Copy-Item .env.example .env
+```
 
-Run the test suite with:
+Set:
+
+```text
+MARIST_ADMIN_KEY=your-private-teacher-key
+```
+
+Do not commit `.env`.
+
+### 3. Start the backend
+
+```powershell
+uv run uvicorn app.main:app --reload --app-dir backend
+```
+
+### 4. Serve the frontend
+
+From the project root, for example:
+
+```powershell
+py -m http.server 5500 --directory frontend
+```
+
+Open:
+
+- Student app: `http://localhost:5500`
+- Teacher dashboard: `http://localhost:5500/admin.html`
+- API docs: `http://localhost:8000/docs`
+
+## Teacher workflow
+
+1. Generate a quiz from study material.
+2. Open `admin.html`.
+3. Enter the configured teacher key.
+4. Open **Review / edit** for a generated quiz.
+5. Check every question and correct answer.
+6. Edit anything that needs correction.
+7. Tick **Published** when the quiz is ready.
+8. Students will then see it in the normal quiz library.
+
+## Testing
+
+Run the complete automated test suite:
 
 ```powershell
 uv run pytest
 ```
 
-The tests isolate in-memory quiz/session state and remove only upload files created by each test.
+## Git checkpoint — Phase I
+
+```powershell
+git add .
+git commit -m "feat(admin): add teacher quiz and document management"
+git push
+```

@@ -12,6 +12,7 @@ env/
 # Environment variables
 .env
 .env.*
+!.env.example
 
 # Test / tooling
 .pytest_cache/
@@ -36,3 +37,6 @@ storage/*.db-*
 # Backup files
 *.zip
 *backup.*
+.env
+storage/*.db
+storage/*.db-*

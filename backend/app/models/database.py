@@ -82,6 +82,18 @@ class QuizRecord(Base):
         DateTime(timezone=True)
     )
 
+    # Teachers can publish a quiz only after reviewing it.
+    is_published: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.now,
+    )
+
     # One quiz can contain many questions.
     questions: Mapped[list["QuestionRecord"]] = relationship(
         back_populates="quiz",

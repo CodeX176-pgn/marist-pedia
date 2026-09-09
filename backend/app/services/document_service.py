@@ -252,3 +252,23 @@ def get_document(
     finally:
         db.close()
     
+
+def delete_document(document_id: str) -> None:
+    """Delete a document record and its stored file."""
+    db = SessionLocal()
+    try:
+        record = db.scalar(
+            select(DocumentRecord).where(DocumentRecord.id == document_id)
+        )
+        if record is None:
+            raise KeyError(f"Document '{document_id}' was not found.")
+
+        file_path = settings.upload_directory / record.stored_filename
+        db.delete(record)
+        db.commit()
+        file_path.unlink(missing_ok=True)
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()

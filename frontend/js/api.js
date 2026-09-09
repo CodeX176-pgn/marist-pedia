@@ -107,3 +107,49 @@ export function submitQuizSession(sessionId) {
         { method: "POST" },
     );
 }
+
+export function adminRequest(endpoint, adminKey, options = {}) {
+    return request(endpoint, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            "X-Admin-Key": adminKey,
+        },
+    });
+}
+
+export function getAdminDocuments(adminKey) {
+    return adminRequest("/api/admin/documents", adminKey);
+}
+
+export function deleteAdminDocument(adminKey, documentId) {
+    return adminRequest(`/api/admin/documents/${encodeURIComponent(documentId)}`, adminKey, {
+        method: "DELETE",
+    });
+}
+
+export function getAdminQuizzes(adminKey) {
+    return adminRequest("/api/admin/quizzes", adminKey);
+}
+
+export function getAdminQuiz(adminKey, quizId) {
+    return adminRequest(`/api/admin/quizzes/${encodeURIComponent(quizId)}`, adminKey);
+}
+
+export function updateAdminQuiz(adminKey, quizId, payload) {
+    return adminRequest(`/api/admin/quizzes/${encodeURIComponent(quizId)}`, adminKey, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+    });
+}
+
+export function updateAdminQuestion(adminKey, quizId, questionId, payload) {
+    return adminRequest(
+        `/api/admin/quizzes/${encodeURIComponent(quizId)}/questions/${encodeURIComponent(questionId)}`,
+        adminKey,
+        {
+            method: "PUT",
+            body: JSON.stringify(payload),
+        },
+    );
+}

@@ -12,6 +12,7 @@ from app.core.request_logging import (
     register_request_logging,
 )
 from app.routers import (
+    admin,
     documents,
     health,
     quizzes,
@@ -47,7 +48,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Accept", "Content-Type"],
 )
 
@@ -55,6 +56,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(quizzes.router)
 app.include_router(documents.router)
+app.include_router(admin.router)
 
 
 @app.get("/")

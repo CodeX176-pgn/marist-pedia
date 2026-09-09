@@ -80,6 +80,8 @@ class QuizService:
                 description=quiz.description,
                 source_document_id=quiz.source_document_id,
                 created_at=datetime.now(UTC),
+                is_published=False,
+                updated_at=datetime.now(UTC),
             )
 
             # Save every question and its choices.
@@ -124,7 +126,7 @@ class QuizService:
 
         return quiz
 
-    def get_quiz(self, quiz_id: str) -> Quiz:
+    def get_quiz(self, quiz_id: str, *, published_only: bool = False) -> Quiz:
         """Retrieve a complete quiz from the database."""
 
         if not self._database_enabled():
@@ -150,7 +152,8 @@ class QuizService:
                     )
                 )
                 .where(
-                    QuizRecord.id == quiz_id
+                    QuizRecord.id == quiz_id,
+                    *([QuizRecord.is_published.is_(True)] if published_only else []),
                 )
             )
 
@@ -164,8 +167,8 @@ class QuizService:
         finally:
             db.close()
 
-    def list_quizzes(self) -> list[Quiz]:
-        """Return all stored quizzes."""
+    def list_quizzes(self, *, published_only: bool = False) -> list[Quiz]:
+        """Return stored quizzes, optionally limited to published quizzes."""
 
         if not self._database_enabled():
             return list(
@@ -175,8 +178,13 @@ class QuizService:
         db = self.session_factory()
 
         try:
+            query = select(QuizRecord)
+
+            if published_only:
+                query = query.where(QuizRecord.is_published.is_(True))
+
             records = db.scalars(
-                select(QuizRecord)
+                query
                 .options(
                     selectinload(
                         QuizRecord.questions
@@ -197,6 +205,103 @@ class QuizService:
         finally:
             db.close()
 
+    def update_quiz(
+        self,
+        quiz_id: str,
+        *,
+        title: str,
+        description: str | None,
+        is_published: bool,
+    ) -> Quiz:
+        """Update teacher-controlled quiz metadata and availability."""
+        if not title.strip():
+            raise ValueError("Quiz title cannot be empty.")
+
+        if not self._database_enabled():
+            quiz = self._quizzes.get(quiz_id)
+            if quiz is None:
+                raise KeyError(f"Quiz '{quiz_id}' was not found.")
+            quiz.title = title.strip()
+            quiz.description = description
+            quiz.is_published = is_published
+            return quiz
+
+        db = self.session_factory()
+        try:
+            record = db.scalar(select(QuizRecord).where(QuizRecord.id == quiz_id))
+            if record is None:
+                raise KeyError(f"Quiz '{quiz_id}' was not found.")
+
+            record.title = title.strip()
+            record.description = description
+            record.is_published = is_published
+            record.updated_at = datetime.now(UTC)
+            db.commit()
+            db.refresh(record)
+            # Re-read with relationships so the returned object is complete.
+            return self.get_quiz(quiz_id)
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def update_question(
+        self,
+        quiz_id: str,
+        question_id: str,
+        *,
+        text: str,
+        correct_answer: str,
+        explanation: str | None,
+        difficulty: Difficulty,
+        choices: list[AnswerChoice],
+    ) -> Quiz:
+        """Edit one generated question and its answer choices."""
+        if not text.strip() or not choices:
+            raise ValueError("A question needs text and at least one choice.")
+        if correct_answer not in {choice.id for choice in choices}:
+            raise ValueError("The correct answer must match one of the choices.")
+
+        if not self._database_enabled():
+            raise KeyError("Question editing requires the database.")
+
+        db = self.session_factory()
+        try:
+            question = db.scalar(
+                select(QuestionRecord).where(
+                    QuestionRecord.id == question_id,
+                    QuestionRecord.quiz_id == quiz_id,
+                )
+            )
+            if question is None:
+                raise KeyError(f"Question '{question_id}' was not found.")
+
+            question.text = text.strip()
+            question.correct_answer = correct_answer
+            question.explanation = explanation
+            question.difficulty = difficulty.value
+            question.choices.clear()
+            question.choices = [
+                AnswerChoiceRecord(
+                    id=choice.id,
+                    question_id=question_id,
+                    position=index,
+                    text=choice.text.strip(),
+                )
+                for index, choice in enumerate(choices)
+            ]
+
+            quiz = db.scalar(select(QuizRecord).where(QuizRecord.id == quiz_id))
+            quiz.updated_at = datetime.now(UTC)
+            db.commit()
+            return self.get_quiz(quiz_id)
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
     @staticmethod
     def _record_to_quiz(
         record: QuizRecord,
@@ -208,6 +313,7 @@ class QuizService:
             title=record.title,
             description=record.description,
             source_document_id=record.source_document_id,
+            is_published=record.is_published,
             questions=[
                 Question(
                     id=question.id,

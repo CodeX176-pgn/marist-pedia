@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Marist Pedia teacher dashboard.">
+    <title>Marist Pedia — Teacher Dashboard</title>
+    <link rel="stylesheet" href="css/reset.css">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-content">
+            <a href="index.html" class="logo" aria-label="Marist Pedia home">
+                <span class="logo-mark" aria-hidden="true">M</span>
+                <span>Marist <strong>Pedia</strong></span>
+            </a>
+            <nav class="main-nav" aria-label="Teacher navigation">
+                <a href="index.html">Student view</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="admin-page">
+        <div class="container">
+            <section id="login-panel" class="admin-card">
+                <p class="eyebrow">Teacher access</p>
+                <h1>Teacher dashboard</h1>
+                <p class="admin-muted">Enter the server's admin key to manage documents and quizzes.</p>
+                <form id="login-form" class="admin-form">
+                    <label for="admin-key">Admin key</label>
+                    <input id="admin-key" type="password" autocomplete="current-password" required>
+                    <button class="button button-primary" type="submit">Open dashboard</button>
+                </form>
+                <p id="login-error" class="admin-error hidden" role="alert"></p>
+            </section>
+
+            <section id="dashboard" class="hidden">
+                <div class="admin-heading">
+                    <div>
+                        <p class="eyebrow">Teacher tools</p>
+                        <h1>Manage Marist Pedia</h1>
+                    </div>
+                    <button id="logout-button" class="button button-secondary" type="button">Lock dashboard</button>
+                </div>
+
+                <section class="admin-card">
+                    <div class="admin-section-heading">
+                        <div>
+                            <p class="eyebrow">Documents</p>
+                            <h2>Uploaded study material</h2>
+                        </div>
+                        <button id="refresh-documents" class="button button-secondary" type="button">Refresh</button>
+                    </div>
+                    <div id="document-list" class="admin-list" aria-live="polite"></div>
+                </section>
+
+                <section class="admin-card">
+                    <div class="admin-section-heading">
+                        <div>
+                            <p class="eyebrow">Quiz library</p>
+                            <h2>Review and publish quizzes</h2>
+                        </div>
+                        <button id="refresh-quizzes" class="button button-secondary" type="button">Refresh</button>
+                    </div>
+                    <div id="quiz-list" class="admin-list" aria-live="polite"></div>
+                </section>
+
+                <section id="editor" class="admin-card hidden">
+                    <div class="admin-section-heading">
+                        <div>
+                            <p class="eyebrow">Quiz editor</p>
+                            <h2 id="editor-title">Review quiz</h2>
+                        </div>
+                        <button id="close-editor" class="button button-secondary" type="button">Close</button>
+                    </div>
+                    <form id="quiz-form" class="admin-form admin-form-grid">
+                        <label>Title<input id="quiz-title" maxlength="200" required></label>
+                        <label>Description<textarea id="quiz-description" rows="3" maxlength="2000"></textarea></label>
+                        <label class="checkbox-label"><input id="quiz-published" type="checkbox"> Published — students can see this quiz</label>
+                        <button class="button button-primary" type="submit">Save quiz settings</button>
+                    </form>
+                    <div id="question-editor" class="question-editor"></div>
+                </section>
+
+                <p id="dashboard-message" class="admin-message" role="status"></p>
+            </section>
+        </div>
+    </main>
+
+    <script type="module" src="js/admin.js"></script>
+</body>
+</html>

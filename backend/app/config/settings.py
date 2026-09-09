@@ -55,6 +55,9 @@ class Settings(BaseSettings):
         ".markdown",
     )
 
+    # Teacher/admin API protection. Set this through MARIST_ADMIN_KEY in .env.
+    admin_key: str = "change-this-admin-key"
+
     # Question generation
     question_generator: str = "local"
 

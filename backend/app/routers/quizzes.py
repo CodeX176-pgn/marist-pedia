@@ -134,7 +134,7 @@ def list_quizzes() -> list[QuizSummarySchema]:
             question_count=len(quiz.questions),
             source_document_id=quiz.source_document_id,
         )
-        for quiz in quiz_service.list_quizzes()
+        for quiz in quiz_service.list_quizzes(published_only=True)
     ]
 
 

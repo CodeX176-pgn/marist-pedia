@@ -37,6 +37,7 @@ class Quiz:
     questions: list[Question] = field(default_factory=list)
     source_document_id: str | None = None
     description: str | None = None
+    is_published: bool = False
 
 
 @dataclass
