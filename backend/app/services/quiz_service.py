@@ -23,7 +23,7 @@ SessionFactory = Callable[[], Session]
 
 
 class QuizService:
-    """Generate and retrieve quizzes from persistent storage."""
+    """Generate, retrieve, and manage persistent quizzes."""
 
     def __init__(
         self,
@@ -33,11 +33,11 @@ class QuizService:
         self.question_generator = question_generator
         self.session_factory = session_factory
 
-        # This fallback keeps pure unit tests independent.
+        # This fallback keeps pure unit tests independent from a database.
         self._quizzes: dict[str, Quiz] = {}
 
     def _database_enabled(self) -> bool:
-        """Check whether this service is using the database."""
+        """Check whether this service is currently using the database."""
         return self.session_factory is not None
 
     def generate_quiz(
@@ -59,14 +59,17 @@ class QuizService:
             question_count=question_count,
         )
 
+        # Newly generated quizzes start unpublished.
+        # A teacher must review and publish them before students can see them.
         quiz = Quiz(
             id=str(uuid4()),
             title=title.strip(),
             questions=questions,
             source_document_id=source_document_id,
+            is_published=False,
         )
 
-        # Unit-test fallback.
+        # Store the quiz in memory when a database is not being used.
         if not self._database_enabled():
             self._quizzes[quiz.id] = quiz
             return quiz
@@ -84,10 +87,8 @@ class QuizService:
                 updated_at=datetime.now(UTC),
             )
 
-            # Save every question and its choices.
-            for position, question in enumerate(
-                quiz.questions
-            ):
+            # Save every generated question and its answer choices.
+            for position, question in enumerate(quiz.questions):
                 question_record = QuestionRecord(
                     id=question.id,
                     quiz_id=quiz.id,
@@ -126,13 +127,31 @@ class QuizService:
 
         return quiz
 
-    def get_quiz(self, quiz_id: str, *, published_only: bool = False) -> Quiz:
-        """Retrieve a complete quiz from the database."""
+    def get_quiz(
+        self,
+        quiz_id: str,
+        *,
+        published_only: bool = False,
+    ) -> Quiz:
+        """
+        Retrieve a complete quiz.
 
+        When published_only=True, unpublished quizzes are deliberately
+        invisible. This is used by the student-facing API.
+        """
+
+        # Handle the in-memory unit-test implementation.
         if not self._database_enabled():
             quiz = self._quizzes.get(quiz_id)
 
             if quiz is None:
+                raise KeyError(
+                    f"Quiz '{quiz_id}' was not found."
+                )
+
+            # Keep the in-memory implementation consistent with
+            # the database implementation.
+            if published_only and not quiz.is_published:
                 raise KeyError(
                     f"Quiz '{quiz_id}' was not found."
                 )
@@ -142,6 +161,17 @@ class QuizService:
         db = self.session_factory()
 
         try:
+            # Start with the requested quiz ID.
+            filters = [
+                QuizRecord.id == quiz_id,
+            ]
+
+            # Students may only retrieve published quizzes.
+            if published_only:
+                filters.append(
+                    QuizRecord.is_published.is_(True)
+                )
+
             record = db.scalar(
                 select(QuizRecord)
                 .options(
@@ -151,10 +181,7 @@ class QuizService:
                         QuestionRecord.choices
                     )
                 )
-                .where(
-                    QuizRecord.id == quiz_id,
-                    *([QuizRecord.is_published.is_(True)] if published_only else []),
-                )
+                .where(*filters)
             )
 
             if record is None:
@@ -167,35 +194,43 @@ class QuizService:
         finally:
             db.close()
 
-    def list_quizzes(self, *, published_only: bool = False) -> list[Quiz]:
+    def list_quizzes(
+        self,
+        *,
+        published_only: bool = False,
+    ) -> list[Quiz]:
         """Return stored quizzes, optionally limited to published quizzes."""
 
+        # Handle the in-memory unit-test implementation.
         if not self._database_enabled():
-            return list(
+            quizzes = list(
                 self._quizzes.values()
             )
+
+            # Only expose published quizzes when requested.
+            if published_only:
+                quizzes = [
+                    quiz
+                    for quiz in quizzes
+                    if quiz.is_published
+                ]
+
+            return quizzes
 
         db = self.session_factory()
 
         try:
             query = select(QuizRecord)
 
+            # Students should only see quizzes that a teacher has published.
             if published_only:
-                query = query.where(QuizRecord.is_published.is_(True))
+                query = query.where(
+                    QuizRecord.is_published.is_(True)
+                )
 
             records = db.scalars(
                 query
-                .options(
-                    selectinload(
-                        QuizRecord.questions
-                    ).selectinload(
-                        QuestionRecord.choices
-                    )
-                )
-                .order_by(
-                    QuizRecord.created_at.desc()
-                )
-            ).unique().all()
+            ).all()
 
             return [
                 self._record_to_quiz(record)
@@ -210,39 +245,62 @@ class QuizService:
         quiz_id: str,
         *,
         title: str,
-        description: str | None,
-        is_published: bool,
+        description: str | None = None,
+        is_published: bool = False,
     ) -> Quiz:
-        """Update teacher-controlled quiz metadata and availability."""
+        """Update teacher-controlled quiz metadata and publication status."""
+
         if not title.strip():
             raise ValueError("Quiz title cannot be empty.")
 
+        # Keep the lightweight in-memory implementation usable in unit tests.
         if not self._database_enabled():
             quiz = self._quizzes.get(quiz_id)
+
             if quiz is None:
-                raise KeyError(f"Quiz '{quiz_id}' was not found.")
+                raise KeyError(
+                    f"Quiz '{quiz_id}' was not found."
+                )
+
             quiz.title = title.strip()
             quiz.description = description
             quiz.is_published = is_published
             return quiz
 
         db = self.session_factory()
+
         try:
-            record = db.scalar(select(QuizRecord).where(QuizRecord.id == quiz_id))
+            # Load the quiz so the teacher can update its stored metadata.
+            record = db.scalar(
+                select(QuizRecord)
+                .options(
+                    selectinload(
+                        QuizRecord.questions
+                    ).selectinload(
+                        QuestionRecord.choices
+                    )
+                )
+                .where(QuizRecord.id == quiz_id)
+            )
+
             if record is None:
-                raise KeyError(f"Quiz '{quiz_id}' was not found.")
+                raise KeyError(
+                    f"Quiz '{quiz_id}' was not found."
+                )
 
             record.title = title.strip()
             record.description = description
             record.is_published = is_published
             record.updated_at = datetime.now(UTC)
+
             db.commit()
-            db.refresh(record)
-            # Re-read with relationships so the returned object is complete.
-            return self.get_quiz(quiz_id)
+
+            return self._record_to_quiz(record)
+
         except Exception:
             db.rollback()
             raise
+
         finally:
             db.close()
 
@@ -257,48 +315,128 @@ class QuizService:
         difficulty: Difficulty,
         choices: list[AnswerChoice],
     ) -> Quiz:
-        """Edit one generated question and its answer choices."""
-        if not text.strip() or not choices:
-            raise ValueError("A question needs text and at least one choice.")
-        if correct_answer not in {choice.id for choice in choices}:
-            raise ValueError("The correct answer must match one of the choices.")
+        """Update one question and its answer choices."""
 
+        if not text.strip():
+            raise ValueError("Question text cannot be empty.")
+
+        if not choices:
+            raise ValueError("A question must have at least two choices.")
+
+        if len(choices) < 2:
+            raise ValueError("A question must have at least two choices.")
+
+        # Answer IDs must be unique within the question.
+        choice_ids = [choice.id for choice in choices]
+        if len(choice_ids) != len(set(choice_ids)):
+            raise ValueError("Answer choice IDs must be unique.")
+
+        # The correct answer must refer to one of the available choices.
+        if correct_answer not in choice_ids:
+            raise ValueError(
+                "Correct answer must match one of the answer choice IDs."
+            )
+
+        # Keep the lightweight in-memory implementation usable in unit tests.
         if not self._database_enabled():
-            raise KeyError("Question editing requires the database.")
+            quiz = self._quizzes.get(quiz_id)
+
+            if quiz is None:
+                raise KeyError(
+                    f"Quiz '{quiz_id}' was not found."
+                )
+
+            question = next(
+                (
+                    item
+                    for item in quiz.questions
+                    if item.id == question_id
+                ),
+                None,
+            )
+
+            if question is None:
+                raise KeyError(
+                    f"Question '{question_id}' was not found."
+                )
+
+            question.text = text.strip()
+            question.correct_answer = correct_answer
+            question.explanation = explanation
+            question.difficulty = difficulty
+            question.choices = list(choices)
+
+            return quiz
 
         db = self.session_factory()
+
         try:
+            # Load the question through its quiz so the relationship is verified.
             question = db.scalar(
-                select(QuestionRecord).where(
+                select(QuestionRecord)
+                .options(
+                    selectinload(
+                        QuestionRecord.choices
+                    )
+                )
+                .where(
                     QuestionRecord.id == question_id,
                     QuestionRecord.quiz_id == quiz_id,
                 )
             )
+
             if question is None:
-                raise KeyError(f"Question '{question_id}' was not found.")
+                raise KeyError(
+                    f"Question '{question_id}' was not found."
+                )
 
             question.text = text.strip()
             question.correct_answer = correct_answer
             question.explanation = explanation
             question.difficulty = difficulty.value
-            question.choices.clear()
+
+            # Replacing the relationship safely removes old choices because
+            # the SQLAlchemy model uses delete-orphan cascade.
             question.choices = [
                 AnswerChoiceRecord(
                     id=choice.id,
                     question_id=question_id,
-                    position=index,
-                    text=choice.text.strip(),
+                    position=position,
+                    text=choice.text,
                 )
-                for index, choice in enumerate(choices)
+                for position, choice in enumerate(choices)
             ]
 
-            quiz = db.scalar(select(QuizRecord).where(QuizRecord.id == quiz_id))
+            quiz = db.scalar(
+                select(QuizRecord)
+                .options(
+                    selectinload(
+                        QuizRecord.questions
+                    ).selectinload(
+                        QuestionRecord.choices
+                    )
+                )
+                .where(QuizRecord.id == quiz_id)
+            )
+
+            if quiz is None:
+                raise KeyError(
+                    f"Quiz '{quiz_id}' was not found."
+                )
+
             quiz.updated_at = datetime.now(UTC)
+
             db.commit()
-            return self.get_quiz(quiz_id)
+
+            # Reload the committed relationship state before returning it.
+            db.refresh(quiz)
+
+            return self._record_to_quiz(quiz)
+
         except Exception:
             db.rollback()
             raise
+
         finally:
             db.close()
 
@@ -306,7 +444,7 @@ class QuizService:
     def _record_to_quiz(
         record: QuizRecord,
     ) -> Quiz:
-        """Convert a database record back into our domain model."""
+        """Convert a database record into the application's Quiz model."""
 
         return Quiz(
             id=record.id,

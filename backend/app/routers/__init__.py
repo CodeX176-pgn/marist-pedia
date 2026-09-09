@@ -1,7 +1,9 @@
-from . import documents, health, quizzes
+from . import admin, documents, health, quizzes, teacher
 
 __all__ = [
+    "admin",
     "documents",
     "health",
     "quizzes",
+    "teacher",
 ]

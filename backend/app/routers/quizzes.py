@@ -23,6 +23,8 @@ from app.services.quiz_session_service import (
     QuizSessionService,
 )
 
+
+# Create the router used by all student quiz endpoints.
 router = APIRouter(
     prefix="/api/quizzes",
     tags=["Quizzes"],
@@ -30,7 +32,7 @@ router = APIRouter(
 
 
 def _create_quiz_service() -> QuizService:
-    """Build a QuizService using the configured generator."""
+    """Build a QuizService using the configured question generator."""
 
     question_generator = create_question_generator(
         settings.question_generator,
@@ -42,12 +44,22 @@ def _create_quiz_service() -> QuizService:
     )
 
 
+# Reuse the quiz service for API requests.
 quiz_service = _create_quiz_service()
+
+# Reuse the session service for student attempts.
 session_service = QuizSessionService(
     session_factory=SessionLocal,
 )
 
+
 def _question_to_schema(question) -> QuestionSchema:
+    """
+    Convert an internal question into the student-safe schema.
+
+    Correct answers are deliberately excluded here.
+    """
+
     return QuestionSchema(
         id=question.id,
         text=question.text,
@@ -63,6 +75,12 @@ def _question_to_schema(question) -> QuestionSchema:
 
 
 def _quiz_to_schema(quiz) -> QuizSchema:
+    """
+    Convert an internal quiz into the student-safe API schema.
+
+    Correct answers are never included before submission.
+    """
+
     return QuizSchema(
         id=quiz.id,
         title=quiz.title,
@@ -76,6 +94,8 @@ def _quiz_to_schema(quiz) -> QuizSchema:
 
 
 def _session_to_schema(session) -> QuizSessionResponse:
+    """Convert an internal quiz session into its API schema."""
+
     return QuizSessionResponse(
         id=session.id,
         quiz_id=session.quiz_id,
@@ -93,7 +113,12 @@ def _session_to_schema(session) -> QuizSessionResponse:
 def generate_quiz(
     request: QuizGenerationRequest,
 ) -> QuizGenerationResponse:
-    """Generate and store a quiz."""
+    """
+    Generate and store a new quiz.
+
+    New quizzes are drafts and must be published by a teacher
+    before students can take them.
+    """
 
     try:
         quiz = quiz_service.generate_quiz(
@@ -125,16 +150,25 @@ def generate_quiz(
     response_model=list[QuizSummarySchema],
 )
 def list_quizzes() -> list[QuizSummarySchema]:
-    """Return all available quizzes."""
+    """
+    Return quizzes available to students.
+
+    Only published quizzes are returned.
+    """
+
+    quizzes = quiz_service.list_quizzes(
+        published_only=True,
+    )
 
     return [
         QuizSummarySchema(
             id=quiz.id,
             title=quiz.title,
+            description=quiz.description,
             question_count=len(quiz.questions),
             source_document_id=quiz.source_document_id,
         )
-        for quiz in quiz_service.list_quizzes(published_only=True)
+        for quiz in quizzes
     ]
 
 
@@ -143,10 +177,17 @@ def list_quizzes() -> list[QuizSummarySchema]:
     response_model=QuizSchema,
 )
 def get_quiz(quiz_id: str) -> QuizSchema:
-    """Return a quiz without exposing its correct answers."""
+    """
+    Return a published quiz without exposing its answers.
+
+    Students cannot access unpublished quizzes.
+    """
 
     try:
-        quiz = quiz_service.get_quiz(quiz_id)
+        quiz = quiz_service.get_quiz(
+            quiz_id,
+            published_only=True,
+        )
 
     except KeyError as exc:
         raise HTTPException(
@@ -166,8 +207,13 @@ def create_session(
     quiz_id: str,
     request: QuizSessionCreateRequest,
 ) -> QuizSessionResponse:
-    """Create a new attempt for a quiz."""
+    """
+    Create a new student attempt.
 
+    Students can only start quizzes that have been published.
+    """
+
+    # Prevent a mismatched ID in the URL and request body.
     if request.quiz_id != quiz_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -175,8 +221,15 @@ def create_session(
         )
 
     try:
-        quiz = quiz_service.get_quiz(quiz_id)
-        session = session_service.create_session(quiz)
+        # A student may only start a published quiz.
+        quiz = quiz_service.get_quiz(
+            quiz_id,
+            published_only=True,
+        )
+
+        session = session_service.create_session(
+            quiz,
+        )
 
     except KeyError as exc:
         raise HTTPException(
@@ -197,11 +250,15 @@ def create_session(
     "/sessions/{session_id}",
     response_model=QuizSessionResponse,
 )
-def get_session(session_id: str) -> QuizSessionResponse:
-    """Return the current state of a quiz session."""
+def get_session(
+    session_id: str,
+) -> QuizSessionResponse:
+    """Return the current state of a student quiz session."""
 
     try:
-        session = session_service.get_session(session_id)
+        session = session_service.get_session(
+            session_id,
+        )
 
     except KeyError as exc:
         raise HTTPException(
@@ -220,11 +277,18 @@ def submit_answer(
     session_id: str,
     request: AnswerSubmission,
 ) -> AnswerSubmissionResponse:
-    """Record one answer in an active quiz session."""
+    """Record one answer in an active student quiz session."""
 
     try:
-        session = session_service.get_session(session_id)
-        quiz = quiz_service.get_quiz(session.quiz_id)
+        # Load the session so we know which quiz it belongs to.
+        session = session_service.get_session(
+            session_id,
+        )
+
+        # The correct answer remains server-side.
+        quiz = quiz_service.get_quiz(
+            session.quiz_id,
+        )
 
         session_service.submit_answer(
             session_id=session_id,
@@ -259,12 +323,25 @@ def submit_answer(
 def submit_session(
     session_id: str,
 ) -> QuizResultResponse:
-    """Submit and evaluate an entire quiz session."""
+    """
+    Submit and evaluate a complete student quiz session.
+
+    Correct answers are only returned after submission.
+    """
 
     try:
-        session = session_service.get_session(session_id)
-        quiz = quiz_service.get_quiz(session.quiz_id)
+        # Retrieve the student's active session.
+        session = session_service.get_session(
+            session_id,
+        )
 
+        # Load the full internal quiz, including correct answers.
+        # This information stays on the server.
+        quiz = quiz_service.get_quiz(
+            session.quiz_id,
+        )
+
+        # Evaluate the student's answers.
         result = session_service.submit_session(
             session_id=session_id,
             quiz=quiz,
@@ -282,4 +359,6 @@ def submit_session(
             detail=str(exc),
         ) from exc
 
-    return QuizResultResponse(**result)
+    return QuizResultResponse(
+        **result,
+    )

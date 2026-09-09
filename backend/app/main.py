@@ -16,8 +16,11 @@ from app.routers import (
     documents,
     health,
     quizzes,
+    teacher,
 )
 
+
+# Configure application logging before the server starts.
 configure_logging()
 
 # Make sure the database exists before the API starts.
@@ -36,6 +39,7 @@ register_request_logging(app)
 # Handle expected and unexpected API errors consistently.
 register_error_handlers(app)
 
+
 # Reject requests using untrusted Host headers.
 app.add_middleware(
     TrustedHostMiddleware,
@@ -48,21 +52,36 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Accept", "Content-Type"],
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+    ],
+    allow_headers=[
+        "Accept",
+        "Content-Type",
+    ],
 )
 
 
+# Register the application's API routers.
 app.include_router(health.router)
 app.include_router(quizzes.router)
 app.include_router(documents.router)
 app.include_router(admin.router)
 
+# Register the teacher status/teacher-area router.
+app.include_router(teacher.router)
+
 
 @app.get("/")
 async def root() -> dict[str, str]:
+    """Return basic information about the application."""
+
     return {
         "name": settings.app_name,
         "version": settings.app_version,
         "message": "Welcome to Marist Pedia!",
     }
+
