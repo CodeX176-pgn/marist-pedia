@@ -19,35 +19,39 @@ from app.routers import (
     teacher,
 )
 
-
-# Configure application logging before the server starts.
+# Configure logging before the server starts.
 configure_logging()
 
-# Make sure the database exists before the API starts.
+# Make sure the database and its tables exist.
 init_database()
 
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+
+    # Interactive API documentation can be disabled in production.
+    docs_url="/docs" if settings.docs_enabled else None,
+    redoc_url="/redoc" if settings.docs_enabled else None,
+    openapi_url="/openapi.json" if settings.docs_enabled else None,
 )
 
 
-# Give every request a traceable ID and log its duration.
+# Add a request ID and request-duration logging.
 register_request_logging(app)
 
-# Handle expected and unexpected API errors consistently.
+# Register consistent application error responses.
 register_error_handlers(app)
 
 
-# Reject requests using untrusted Host headers.
+# Reject requests containing untrusted Host headers.
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=settings.allowed_hosts_list,
 )
 
 
-# Restrict browser-based cross-origin requests.
+# Restrict browser cross-origin requests.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -65,13 +69,11 @@ app.add_middleware(
 )
 
 
-# Register the application's API routers.
+# Register application routes.
 app.include_router(health.router)
 app.include_router(quizzes.router)
 app.include_router(documents.router)
 app.include_router(admin.router)
-
-# Register the teacher status/teacher-area router.
 app.include_router(teacher.router)
 
 
@@ -84,4 +86,3 @@ async def root() -> dict[str, str]:
         "version": settings.app_version,
         "message": "Welcome to Marist Pedia!",
     }
-

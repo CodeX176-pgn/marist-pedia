@@ -3,15 +3,21 @@ const DEFAULT_API_PORT = 8000;
 function getDefaultApiUrl() {
     const protocol = window.location.protocol;
 
-    // When the frontend is opened directly from the filesystem,
-    // fall back to localhost for local development.
+    // When the HTML file is opened directly from disk,
+    // use localhost for local development.
     if (protocol === "file:") {
         return `http://localhost:${DEFAULT_API_PORT}`;
     }
 
-    // When served over HTTP, use the same machine/IP that served
-    // the frontend, but with the FastAPI port.
-    return `${protocol}//${window.location.hostname}:${DEFAULT_API_PORT}`;
+    // During development the frontend normally runs on port 5500,
+    // while FastAPI runs on port 8000.
+    if (window.location.port === "5500") {
+        return `${protocol}//${window.location.hostname}:${DEFAULT_API_PORT}`;
+    }
+
+    // Production uses a reverse proxy, so the frontend and API
+    // share the same origin.
+    return window.location.origin;
 }
 
 const API_BASE_URL = (
