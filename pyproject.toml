@@ -9,14 +9,17 @@ dependencies = [
     "python-multipart>=0.0.20",
     "pypdf>=6.17.0",
     "sqlalchemy>=2.0.52",
+    "pywebview>=6.2.1",
 ]
 
 [dependency-groups]
 dev = [
     "httpx2>=2.12.0",
+    "pyinstaller>=6.22.2",
     "pytest>=9.1.1",
 ]
 
 [tool.pytest.ini_options]
+# Tell pytest that the project root contains Python packages.
+pythonpath = ["."]
 testpaths = ["tests"]
-pythonpath = ["backend"]
